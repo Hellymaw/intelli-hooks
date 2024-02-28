@@ -1,64 +1,51 @@
-use axum::{
-    Router,
-    routing::post,
-    extract::Json,
-    };
+use axum::{extract::Json, routing::post, Router};
 use serde_json;
-use std::fs::OpenOptions;
-use std::io::prelude::*;
+
+pub mod gitea_webhooks;
 
 #[tokio::main]
 async fn main() {
     let app = Router::new().route("/", post(post_handler));
 
-    let listerner = tokio::net::TcpListener::bind("192.168.0.26:6969").await.unwrap();
+    let listerner = tokio::net::TcpListener::bind("192.168.0.26:6969")
+        .await
+        .unwrap();
 
     axum::serve(listerner, app).await.unwrap();
 }
 
-
 async fn post_handler(Json(payload): Json<serde_json::Value>) {
-    let req_data = &payload["pull_request"];
-    
-    static mut COUNT: i32 = 0;
-
-    if !req_data.is_null() {
-        let mut file = OpenOptions::new()
-            .write(true)
-            .append(true)
-            .open("C:/Users/aaron/Documents/intelli-hooks/src/inputs/tmp.json")
-            .unwrap();
-
-        if let Err(e) = writeln!(file, "{}", serde_json::to_string_pretty(&payload).expect("oop")) {
-            eprintln!("Couldn't write to file: {}", e);
-        } else {
-            unsafe {
-                COUNT += 1;
-                println!("Added object to file: {}", COUNT);
-            }
+    if let Ok(webhook) = serde_json::from_value::<gitea_webhooks::Webhook>(payload) {
+        match webhook.action.as_str() {
+            "review_requested" => review_requested(webhook),
+            "reviewed" => reviewed(webhook),
+            "opened" => opened(webhook),
+            action => println!("Unhandled action \"{}\"", action),
         }
-
-        if let Some(action) = payload["action"].as_str() {
-            match action {
-                "review_requested" => review_requested(&payload),
-                "reviewed" => reviewed(&payload),
-                "opened" => opened(&payload),
-                _ => println!("Unhandled action \"{}\"", action),
-            }
-        }
-
-
+    } else {
+        println!("Issue deserializing JSON!");
     }
 }
 
-fn review_requested(payload: &serde_json::Value) {
-println!("review requested");
+fn review_requested(payload: gitea_webhooks::Webhook) {
+    let requester = payload.sender.email;
+    let requested = payload.requested_reviewer.unwrap().email;
+
+    println!("{} requested a review from {}", requester, requested);
 }
 
-fn reviewed(payload: &serde_json::Value) {
-    println!("reviewed");
+fn reviewed(payload: gitea_webhooks::Webhook) {
+    let reviewer = payload.sender.email;
+    let review = payload.review.unwrap();
+
+    println!("{} {:?} the pull-request", reviewer, review.r#type);
 }
 
-fn opened(payload: &serde_json::Value) {
-    println!("opened");
+fn opened(payload: gitea_webhooks::Webhook) {
+    let opener = payload.sender.email;
+    let title = payload.pull_request.title;
+    let body = payload.pull_request.body;
+    let number = payload.pull_request.id;
+
+    println!("{} opened PR#{} \"{}\"\n{}", opener, number, title, body);
 }
