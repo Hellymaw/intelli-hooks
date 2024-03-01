@@ -1,4 +1,5 @@
 use axum::{extract::Json, routing::post, Router};
+use gitea_webhooks::Action;
 use reqwest;
 use serde_json;
 
@@ -30,11 +31,11 @@ async fn send_slack_webhook(body: &str) -> Result<reqwest::Response, reqwest::Er
 
 async fn post_handler(Json(payload): Json<serde_json::Value>) {
     if let Ok(webhook) = serde_json::from_value::<gitea_webhooks::Webhook>(payload) {
-        match webhook.action.as_str() {
-            "review_requested" => review_requested(webhook).await,
-            "reviewed" => reviewed(webhook).await,
-            "opened" => opened(webhook).await,
-            action => println!("Unhandled action \"{}\"", action),
+        match webhook.action {
+            Action::ReviewRequested => review_requested(webhook).await,
+            Action::Reviewed => reviewed(webhook).await,
+            Action::Closed => opened(webhook).await,
+            action => println!("Unhandled action \"{:?}\"", action),
         }
     } else {
         println!("Issue deserializing JSON!");

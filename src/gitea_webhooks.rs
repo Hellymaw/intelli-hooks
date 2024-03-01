@@ -1,12 +1,12 @@
 use serde::Deserialize;
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub struct User {
     pub email: String,
     pub username: String,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub struct Review {
     pub content: String,
     pub r#type: String,
@@ -18,7 +18,7 @@ pub struct Review {
 //     Comment { comment: String },
 // }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub struct PullRequest {
     pub body: String,
     pub comments: u64,
@@ -28,9 +28,19 @@ pub struct PullRequest {
     pub url: String,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
+#[serde(rename_all = "snake_case")]
+pub enum Action {
+    Opened,
+    Closed,
+    Reopened,
+    Reviewed,
+    ReviewRequested,
+}
+
+#[derive(Deserialize, Debug)]
 pub struct Webhook {
-    pub action: String,
+    pub action: Action,
     pub pull_request: PullRequest,
     pub requested_reviewer: Option<User>,
     pub review: Option<Review>,
