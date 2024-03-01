@@ -7,19 +7,10 @@ pub struct User {
 }
 
 #[derive(Deserialize, Debug)]
-pub enum ReviewOutcome {
-    #[serde(rename = "pull_request_review_approved")]
-    Approved,
-    #[serde(rename = "pull_request_review_rejected")]
-    Rejected,
-    #[serde(rename = "pull_request_review_comment")]
-    Comment,
-}
-
-#[derive(Deserialize, Debug)]
-pub struct Review {
-    pub content: String,
-    pub r#type: ReviewOutcome,
+#[serde(rename_all = "lowercase")]
+pub enum PullRequestState {
+    Open,
+    Closed,
 }
 
 #[derive(Deserialize, Debug)]
@@ -30,6 +21,18 @@ pub struct PullRequest {
     pub user: User,
     pub title: String,
     pub url: String,
+    pub state: PullRequestState,
+}
+
+#[derive(Deserialize, Debug)]
+#[serde(tag = "type")]
+pub enum Review {
+    #[serde(rename = "pull_request_review_approved")]
+    Approved { content: String },
+    #[serde(rename = "pull_request_review_rejected")]
+    Rejected { content: String },
+    #[serde(rename = "pull_request_review_comment")]
+    Comment { content: String },
 }
 
 #[derive(Deserialize, Debug)]
