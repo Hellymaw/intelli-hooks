@@ -2,10 +2,11 @@ use serde_json;
 use std::fs::OpenOptions;
 use std::io::prelude::*;
 
-fn log_payload(payload: &serde_json::Value) {
+pub fn log_payload(payload: &serde_json::Value) {
     static mut COUNT: i32 = 0;
 
     let mut file = OpenOptions::new()
+        .create(true)
         .write(true)
         .append(true)
         .open("C:/Users/aaron/Documents/intelli-hooks/src/inputs/tmp.json")
