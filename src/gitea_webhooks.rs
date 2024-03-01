@@ -34,6 +34,7 @@ pub enum Action {
     Opened,
     Closed,
     Reopened,
+    Edited,
     Reviewed,
     ReviewRequested,
 }
