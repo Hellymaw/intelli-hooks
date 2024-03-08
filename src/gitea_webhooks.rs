@@ -1,4 +1,4 @@
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize, Debug)]
 pub struct User {
@@ -52,4 +52,11 @@ pub struct Webhook {
     pub action: Action,
     pub pull_request: PullRequest,
     pub sender: User,
+}
+
+#[derive(Serialize, Debug)]
+pub struct OutgoingWebhook {
+    pub email: String,
+    pub title: String,
+    pub body: String,
 }

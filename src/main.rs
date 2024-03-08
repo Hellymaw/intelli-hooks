@@ -1,5 +1,5 @@
 use axum::{extract::Json, routing::post, Router};
-use gitea_webhooks::{Action, Review, User, Webhook};
+use gitea_webhooks::{Action, OutgoingWebhook, Review, User, Webhook};
 use reqwest;
 use serde_json;
 
@@ -58,11 +58,14 @@ async fn reviewed(payload: &Webhook, review: &Review) {
 }
 
 async fn opened(payload: Webhook) {
-    let opener = payload.sender.email;
-    let title = payload.pull_request.title;
-    let body = payload.pull_request.body;
-    let number = payload.pull_request.id;
+    let outgoing = OutgoingWebhook {
+        email: payload.sender.email.to_owned(),
+        title: "opened PR#".to_owned(),
+        body: "".to_owned(),
+    };
 
-    let body = format!("{} opened PR#{} \"{}\"\n{}", opener, number, title, body);
+    let body = serde_json::to_string(&outgoing).unwrap();
+
+    println!("{:?}", body);
     let _ = send_slack_webhook(&body).await;
 }
