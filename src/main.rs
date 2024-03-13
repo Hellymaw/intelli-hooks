@@ -1,19 +1,33 @@
+use std::{future::IntoFuture, thread};
+
 use axum::{extract::Json, routing::post, Router};
+use futures::join;
 use gitea_webhooks::{Action, OutgoingWebhook, Review, User, Webhook};
 use reqwest;
 use serde_json;
+use tokio::try_join;
 
 pub mod gitea_webhooks;
+pub mod slack_app;
 
 const BIND_ADDRESS: &str = "192.168.0.26:6969";
 const SLACK_WEBHOOK_ADDRESS: &str = "http://localhost:8000/";
 
-#[tokio::main]
+#[tokio::main(flavor = "multi_thread")]
 async fn main() {
     let app = Router::new().route("/", post(post_handler));
     let listener = tokio::net::TcpListener::bind(BIND_ADDRESS).await.unwrap();
 
-    axum::serve(listener, app).await.unwrap();
+    let axum_handle = tokio::spawn(async {
+        axum::serve(listener, app).await.unwrap();
+    });
+
+    let slack_handle = tokio::spawn(async {
+        slack_app::run_slack_socket_mode().await.unwrap();
+        panic!("The slack app shouldn't have finished, panic!");
+    });
+
+    let _ = try_join!(axum_handle, slack_handle);
 }
 
 async fn send_slack_webhook(body: &str) -> Result<reqwest::Response, reqwest::Error> {
